@@ -1,0 +1,977 @@
+<!--
+To change this template, choose Tools | Templates
+and open the template in the editor.
+-->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+    <head>
+        <title></title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+        <script type="text/javascript">
+            //////////////////////////////////////////////////////////////////////////////////
+
+            // ###########################################
+            var fileName = "play.html";
+
+            var delay = 100; // decides the speed (70)
+
+            var order_hor = 55; // 47 gives number of columns in the table
+            var order_ver = 45; // 28 gives number of rows in the table
+
+            // ###########################################
+
+            var noOfCells = order_hor * order_ver;
+            var last = (order_hor * order_ver) - 1; // gives number of cells in the table
+            var cellSize = 10; // in pixels
+            //var first = order_hor+1;
+            var first = order_hor + 1; // dont know why???
+
+            var headImgArr = ["images/head1.JPG", "images/head2.JPG"];
+            var bodyImgArr = ["images/body1.JPG", "images/body2.JPG"];
+            var wallImg = "images/wall.JPG";
+            var blankImg = "images/blank.JPG";
+            var foodImg = "images/food0.JPG";
+            var winnerImgPath = "images/winner/winner";
+            var loserImgPath = "images/loser/loser";
+
+            var noOfWinnerImgs = 3;
+            var noOfLoserImgs = 5;
+            var noOfBusyImgs = 5;
+
+            var BLANK_VALUE = 0;
+            var FOOD_VALUE = 6;
+            var WALL_VALUE = 5;
+
+            var UP = 4;
+            var DOWN = 2;
+            var LEFT = 3;
+            var RIGHT = 1;
+            
+            var UP_CODE_ARROW = 38;
+            var DOWN_CODE_ARROW = 40;
+            var LEFT_CODE_ARROW = 37;
+            var RIGHT_CODE_ARROW = 39;
+            
+            var UP_CODE_KEY= 87;
+            var DOWN_CODE_KEY= 83;
+            var LEFT_CODE_KEY= 65;
+            var RIGHT_CODE_KEY= 68;
+
+            var vals = new Array(); // indicates the cells which contain the part of snake
+            // (11-14):snake 1, (21-24):snake 2
+            // 0:blank		5:food		6:wall
+
+            var pause = 0; // to pause/play the game
+            var pauseSet = 0;
+            var level = 1; // to change levels
+
+            var limit = 100; // no. of food items after which level changes
+
+            var snakeObj;
+
+            var timer;
+            var tmpDirection;
+
+            //////////////////////////////////////////
+
+            function play(snakeObj) {
+
+                if(!pause) {
+                    vals[snakeObj.head] = snakeObj.id + "_" + snakeObj.direction;
+
+                    // right
+                    if(snakeObj.direction == RIGHT) {
+                        if(((snakeObj.head+1) % order_hor) > (snakeObj.head % order_hor)) {
+                            if((isBlank(vals[snakeObj.head+1])) || isFood(vals[snakeObj.head+1])) {
+                                document.images['arena' + snakeObj.head].src = snakeObj.bodyImg;
+                                snakeObj.head += 1;
+                                document.images['arena' + snakeObj.head].src = snakeObj.headImg;
+
+                                if(isFood(vals[snakeObj.head+1])) {
+                                    snakeObj.score++;
+
+                                    if(snakeObj.score%limit == 0) {
+                                        //pause = 1;
+                                        pauseGame();
+                                    }
+
+                                    updateScore(snakeObj);
+                                    snakeObj.flg = 1;
+
+                                    tmpDirection = snakeObj.direction;
+                                    snakeObj.direction = 0;
+                                    newFood();
+                                    snakeObj.direction = tmpDirection;
+                                }
+
+                                vals[snakeObj.head] = snakeObj.id + "_" + snakeObj.direction;
+
+                                snakeObj.prevCount = snakeObj.count;
+                                if(snakeObj.flg != 1) {
+                                    snakeObj.count = getCount(vals[snakeObj.tail]);
+                                    
+                                    document.images['arena' + snakeObj.tail].src = blankImg;
+                                    vals[snakeObj.tail] = "-1" + "_" + BLANK_VALUE;
+                                    snakeObj.tail = snakeObj.tail + snakeObj.count;
+                                    document.images['arena' + snakeObj.tail].src = snakeObj.bodyImg;
+                                    document.images['arena' + snakeObj.head].src = snakeObj.headImg;
+                                }
+                                else {
+                                    snakeObj.flg = 0;
+                                }
+                            } else if(isBody(vals[snakeObj.head+1]) ||  isWall(vals[snakeObj.head+1])) {
+                                if(snakeObj.prev_direction != LEFT) {
+                                    endLife(snakeObj);
+                                }
+                                else {
+                                    snakeObj.direction = LEFT;
+                                    play(snakeObj);
+                                }
+                            }
+                        }
+                    }
+
+                    // down
+                    else if(snakeObj.direction == DOWN) {
+                        if(((snakeObj.head+order_hor) < last)) {
+                            if(isBlank(vals[snakeObj.head+order_hor]) || isFood(vals[snakeObj.head+order_hor])) {
+                                document.images['arena' + snakeObj.head].src = snakeObj.bodyImg;
+                                snakeObj.head += order_hor;
+                                document.images['arena' + snakeObj.head].src = snakeObj.headImg;
+
+                                if(isFood(vals[snakeObj.head])) {
+                                    snakeObj.score++;
+
+                                    if(snakeObj.score%limit == 0) {
+                                        //pause = 1;
+                                        pauseGame();
+                                    }
+
+                                    updateScore(snakeObj);
+                                    snakeObj.flg = 1;
+
+                                    tmpDirection = snakeObj.direction;
+                                    snakeObj.direction = 0;
+                                    newFood();
+                                    snakeObj.direction = tmpDirection;
+                                }
+                                vals[snakeObj.head] = snakeObj.id + "_" + snakeObj.direction;
+
+                                snakeObj.prevCount = snakeObj.count;
+                                if(snakeObj.flg != 1) {
+                                    snakeObj.count = getCount(vals[snakeObj.tail]);                                    
+                                    document.images['arena' + snakeObj.tail].src = blankImg;
+                                    vals[snakeObj.tail] = "-1" + "_" + BLANK_VALUE;
+                                    snakeObj.tail = snakeObj.tail + snakeObj.count;
+                                    document.images['arena' + snakeObj.tail].src = snakeObj.bodyImg;
+                                }
+                                else {
+                                    snakeObj.flg = 0;
+                                }
+                            } else if(isBody(vals[snakeObj.head+order_hor]) || isWall(vals[snakeObj.head+order_hor])) {
+                                if(snakeObj.prev_direction != UP) {
+                                    endLife(snakeObj);
+                                }
+                                else {
+                                    snakeObj.direction = UP;
+                                    play(snakeObj);
+                                }
+                            }
+                        }
+                    }
+
+                    // left
+                    else if(snakeObj.direction == LEFT) {
+                        if(((snakeObj.head-1)>=0) && (((snakeObj.head-1)%order_hor) < (snakeObj.head%order_hor))) {
+                            if(isBlank(vals[snakeObj.head-1]) || isFood(vals[snakeObj.head-1])) {
+                                document.images['arena' + snakeObj.head].src = snakeObj.bodyImg;
+                                snakeObj.head--;
+                                document.images['arena' + snakeObj.head].src = snakeObj.headImg;
+
+                                if(isFood(vals[snakeObj.head])) {
+                                    snakeObj.score++;
+
+                                    if(snakeObj.score%limit == 0){
+                                        //pause = 1;
+                                        pauseGame();
+                                    }
+
+                                    updateScore(snakeObj, snakeObj.score);
+                                    snakeObj.flg = 1;
+
+                                    tmpDirection = snakeObj.direction;
+                                    snakeObj.direction = 0;
+                                    newFood();
+                                    snakeObj.direction = tmpDirection;
+                                }
+
+                                vals[snakeObj.head] = snakeObj.id + "_" + snakeObj.direction;
+
+                                snakeObj.prevCount = snakeObj.count;
+                                if(snakeObj.flg != 1) {
+                                    snakeObj.count = getCount(vals[snakeObj.tail]);                                    
+                                    document.images['arena' + snakeObj.tail].src = blankImg;
+                                    vals[snakeObj.tail] = "-1" + "_" + BLANK_VALUE;
+                                    snakeObj.tail = snakeObj.tail + snakeObj.count;
+                                    document.images['arena' + snakeObj.tail].src = snakeObj.bodyImg;
+                                }
+                                else{
+                                    snakeObj.flg = 0;
+                                }
+                            }
+
+                            else if(isBody(vals[snakeObj.head-1]) || isWall(vals[snakeObj.head-1])) {                            
+                                if(snakeObj.prev_direction != RIGHT) {
+                                    endLife(snakeObj);
+                                }
+                                else {
+                                    snakeObj.direction = RIGHT;
+                                    play(snakeObj);
+                                }
+                            }
+                        }
+                    }
+
+                    // up
+                    else if(snakeObj.direction == UP) {
+                        if(((snakeObj.head-order_hor) >= first)) {
+                            if(isBlank(vals[snakeObj.head-order_hor]) || isFood(vals[snakeObj.head-order_hor])) {
+                                document.images['arena' + snakeObj.head].src = snakeObj.bodyImg;
+                                snakeObj.head -= order_hor;
+                                document.images['arena' + snakeObj.head].src = snakeObj.headImg;
+
+                                if(isFood(vals[snakeObj.head])) {
+                                    snakeObj.score++;
+
+                                    if(snakeObj.score%limit == 0) {
+                                        //pause = 1;
+                                        pauseGame();
+                                    }
+
+                                    updateScore(snakeObj);
+                                    snakeObj.flg = 1;
+
+                                    tmpDirection = snakeObj.direction;
+                                    snakeObj.direction = 0;
+                                    newFood();
+                                    snakeObj.direction = tmpDirection;
+                                }
+
+                                vals[snakeObj.head] = snakeObj.id + "_" + snakeObj.direction;
+
+                                snakeObj.prevCount = snakeObj.count;
+
+                                if(snakeObj.flg != 1) {
+                                    snakeObj.count = getCount(vals[snakeObj.tail]);                                    
+                                    document.images['arena' + snakeObj.tail].src = blankImg;
+                                    vals[snakeObj.tail] = "-1" + "_" + BLANK_VALUE;
+                                    snakeObj.tail = snakeObj.tail + snakeObj.count;
+                                    document.images['arena' + snakeObj.tail].src = snakeObj.bodyImg;
+                                } else{
+                                    snakeObj.flg = 0;
+                                }
+                            } else {                                
+                                if(snakeObj.prev_direction != DOWN) {
+                                    endLife(snakeObj);
+                                } else {
+                                    snakeObj.direction = DOWN;
+                                    play(snakeObj);
+                                }
+                            }
+                        }
+                        else {
+                            if(snakeObj.prev_direction != DOWN) {
+                                endLife(snakeObj);
+                            } else {
+                                snakeObj.direction = DOWN;
+                                play(snakeObj);
+                            }
+                        }
+                    }
+                }
+
+                if((snakeObj.prevScore != snakeObj.score) && (snakeObj.score!=0) && (snakeObj.score%limit == 0)) {
+                    //pause = 1;
+                    pauseGame();
+                    snakeObj.prevScore = snakeObj.score;
+                    changeLevel();
+                }
+            }
+
+            function endLife(snakeObj) {
+                
+                clearInterval(timer[snakeObj.id]);
+                
+                if(snakeObj.lives > 0) {                    
+                    snakeObj.lives--;
+                    
+                    var imgName = "images/set" + (parseInt(snakeObj.id)+1) + "/death.png";
+                    var lifeId = "life_" + snakeObj.id + "_" + snakeObj.lives;
+                    
+                    document.getElementById(lifeId).src = imgName;
+                }
+
+                if(snakeObj.lives == 0) {
+                    clearVals(snakeObj);
+                    snakeObj.gameOver = 1;
+                    checkGameOver();
+                } else {                    
+                    if(snakeObj.id == 0) {
+                        resetSnake(snakeObj, first, RIGHT);
+                    } else if (snakeObj.id == 1) {
+                        resetSnake(snakeObj, last-order_hor-1-1, LEFT);
+                    }
+
+                    timer[snakeObj.id] = window.setInterval("play(snakeObj["+snakeObj.id+"])", delay);
+                }                
+            }
+
+            function checkGameOver() {
+                var over = true;
+
+                for(i=0 ; i<snakeObj.length ; i++) {
+                    if(snakeObj[i].gameOver == 0){
+                        over = false;
+
+                        break;
+                    }
+                }
+
+                if(over){
+                    var rand = parseInt((Math.random()*noOfLoserImgs) % noOfLoserImgs);
+                    var loserImg = "<img src='images/loser/loser"+rand+".gif' width='80px' height='80px' alt='result' />";
+
+                    rand = parseInt((Math.random()*noOfWinnerImgs) % noOfWinnerImgs);
+                    var winnerImg = "<img src='images/winner/winner"+rand+".gif' width='80px' height='80px' alt='result' />";
+
+                    if(snakeObj[0].score > snakeObj[1].score){
+                        document.getElementById("result_" + snakeObj[0].id).innerHTML = winnerImg;
+                        document.getElementById("result_" + snakeObj[1].id).innerHTML = loserImg;
+                    } else if(snakeObj[0].score < snakeObj[1].score){
+                        document.getElementById("result_" + snakeObj[0].id).innerHTML = loserImg;
+                        document.getElementById("result_" + snakeObj[1].id).innerHTML = winnerImg;
+                    } else {
+                        alert("draw");
+                    }
+                }
+            }
+
+            function gameOver(snakeObj){
+                if(snakeObj.gameOver == 0){
+                    snakeObj.gameOver = 1;
+                    alert("Game over : " + snakeObj.id);
+                    window.location = fileName;
+                }
+            }
+
+            function updateScore(snakeObj){
+                document.getElementById("score"+snakeObj.id).innerHTML = snakeObj.score;
+            }
+
+            function isBody(val){
+                return parseInt(val.split("_")[1])>=1 && parseInt(val.split("_")[0])<=5;
+            }
+
+            function isBlank(val){
+                return parseInt(val.split("_")[1]) == BLANK_VALUE;
+            }
+
+            function isWall(val){
+                return parseInt(val.split("_")[1]) == WALL_VALUE;
+            }
+
+            function isFood(val){
+                return parseInt(val.split("_")[1]) == FOOD_VALUE;
+            }
+
+            function isRight(val){
+                return parseInt(val.split("_")[1]) == RIGHT;
+            }
+
+            function isLeft(val){
+                return parseInt(val.split("_")[1]) == LEFT;
+            }
+
+            function isUp(val){
+                return parseInt(val.split("_")[1]) == UP;
+            }
+
+            function isDown(val){
+                return parseInt(val.split("_")[1]) == DOWN;
+            }
+
+            function getCount(val){
+                if(isRight(val)){
+                    return 1;
+                } else if(isLeft(val)){
+                    return -1;
+                } else if(isDown(val)){
+                    return order_hor;
+                } else if(isUp(val)){
+                    return -order_hor;
+                }                                    
+            }
+
+            document.onkeydown = function getCode(event) {
+                //alert(event.keyCode);
+                if(!pause) {
+                    // 1st snake (using arrow keys)
+                    if(event.keyCode>=37 && event.keyCode<=40){
+                        snakeObj[1].prev_direction = snakeObj[1].direction;
+
+                        if(event.keyCode == LEFT_CODE_ARROW) {// left
+                            snakeObj[1].direction = LEFT;
+                        }
+
+                        else if(event.keyCode == UP_CODE_ARROW) {// up
+                            snakeObj[1].direction = UP;
+                        }
+
+                        else if(event.keyCode == RIGHT_CODE_ARROW) {// right
+                            if(snakeObj[1].direction != 0) {
+                                snakeObj[1].direction = RIGHT;
+                            }                            
+                        }
+
+                        else if(event.keyCode == DOWN_CODE_ARROW) {// down
+                            snakeObj[1].direction = DOWN;
+                        }
+                    } else {
+                        // 2nd snake (using keys 'w', 's', 'a', 'd')
+
+                        snakeObj[0].prev_direction = snakeObj[0].direction;
+
+                        if(event.keyCode == LEFT_CODE_KEY) {// 'a' = left
+                            if(snakeObj[0].direction != 0) {
+                                snakeObj[0].direction = LEFT;
+                            }                            
+                        }
+
+                        else if(event.keyCode == UP_CODE_KEY) {// 'w' = up
+                            snakeObj[0].direction = UP;
+                        }
+
+                        else if(event.keyCode == RIGHT_CODE_KEY) {// 'd' = right'
+                            snakeObj[0].direction = RIGHT;
+                        }
+
+                        else if(event.keyCode == DOWN_CODE_KEY) {// 's' = down
+                            snakeObj[0].direction = DOWN;
+                        }
+                    }
+                }
+
+                if(event.keyCode == 97) {// 'a'
+                    snakeObj[0].flg = 1;
+                } else if(event.keyCode == 32) { // 'esc'(27) for pause
+                    //pause = (pause==1 ? 0 : 1);
+                    //pauseGame();
+                    togglePause();
+                }
+            }
+
+            function togglePause(){
+                pause = (pause==1 ? 0 : 1);
+
+                if(pause == 1) {
+                    pauseGame();
+                } else {
+                    resumeGame();
+                }
+            }
+
+            function pauseGame(){                
+                setPauseImage();
+                
+                for(i=0 ; i<timer.length ; i++){
+                    clearInterval(timer[i]);
+                }
+            }
+
+            function resumeGame(){
+                for(i=0 ; i<timer.length ; i++){
+                    timer[i] = window.setInterval("play(snakeObj["+i+"])", delay);
+                }
+                
+                resetPauseImage();
+            }
+
+            function resetPauseImage() {                
+                document.getElementById("result_0").innerHTML = "";
+                document.getElementById("result_1").innerHTML = "";
+            }
+
+            function setPauseImage(){
+                var rand = parseInt(Math.random()*noOfBusyImgs % noOfBusyImgs);
+                var busyImg1 = "<img src='images/busy/busy"+rand+".gif' width='80px' height='80px' alt='result' />";
+
+                rand = parseInt(Math.random()*noOfBusyImgs % noOfBusyImgs);
+                var busyImg2 = "<img src='images/busy/busy"+rand+".gif' width='80px' height='80px' alt='result' />";
+
+                document.getElementById("result_0").innerHTML = busyImg1;
+                document.getElementById("result_1").innerHTML = busyImg2;
+            }
+
+            function newFood() {
+
+                for(i=0 ; i<timer.length ; i++){
+                    clearInterval(timer[i]);
+                }
+
+                var tmpArray = new Array();
+                var tmpCnt = 0; // count of number of valid positions (i.e blank positions)
+
+                for(var i=1 ; i<last ; i++) {
+                    if(isBlank(vals[i])) {
+                        tmpCnt++;
+                        tmpArray[tmpCnt] = i;                        
+                    }
+                }
+
+                var food = (Math.random()*(tmpCnt))%(tmpCnt);                
+                food = parseInt(food, 10);
+                //alert("food = " + food);
+                food = tmpArray[food];
+                
+                var noOfFoodImages = 24;
+                //var foodImgNew
+                foodImgNo = parseInt((Math.random()*noOfFoodImages)) % noOfFoodImages;
+                //document.images['arena'+food].src = foodImg;
+                document.images['arena'+food].src = "images/food/" + foodImgNo + ".png";
+                vals[food] = "-1" + "_" + FOOD_VALUE;
+
+                for(i=0 ; i<snakeObj.length ; i++){
+                    //alert("in for : snakeObj[i].gameOver = " + snakeObj[i].gameOver);
+                    if(snakeObj[i].gameOver != 1){
+                        timer[i] = window.setInterval("play(snakeObj["+i+"])", delay);
+                    }
+                }
+            }
+
+            function initializeArena(){
+                for(var i=0 ; i<noOfCells ; i++) {
+                    vals[i] = "-1" + "_" + BLANK_VALUE;
+                }
+
+                // mark wall
+                for(var i=0 ; i<order_hor ; i++) {
+                    vals[i] = "-1" + "_" + WALL_VALUE; // up
+                    vals[i+(order_ver-1)*order_hor] = "-1" + "_" + WALL_VALUE; // down
+                }
+
+                var tmp = 0;
+                for(var i=0 ; i<order_ver ; i++) {
+                    vals[tmp] = "-1" + "_" + WALL_VALUE; // left
+                    vals[tmp+order_hor-1] = "-1" + "_" + WALL_VALUE; // right
+
+                    tmp += order_hor;
+                }
+
+                for(var i=0;i<noOfCells;i++) {
+                    if(isWall(vals[i])) {
+                        document.images['arena' + i].src = wallImg;
+                    }
+                }
+            }
+
+            function initialiseSnake(snakeObj) {
+                if(snakeObj.id == 0){
+                    var cnt = 0;
+                    var change = (snakeObj.head - snakeObj.tail) > 0 ? 1 : -1;
+
+                    for(var i=snakeObj.tail;;i+=change) {
+                        //for(var i=first;;i++) {
+                        if(cnt>snakeObj.snakeLength) {
+                            break;
+                        }
+
+                        vals[i] = snakeObj.id + "_" + RIGHT;
+                        document.images['arena'+i].src = snakeObj.bodyImg;
+
+                        cnt++;
+                    }
+
+                    document.images['arena'+snakeObj.head].src = snakeObj.headImg;
+                    vals[snakeObj.tail] = snakeObj.id + "_" + RIGHT;
+
+                } else if(snakeObj.id == 1) {
+                    var cnt = 0;
+                    var change = (snakeObj.head - snakeObj.tail) > 0 ? 1 : -1;
+
+                    for(var i=snakeObj.tail;;i+=change) {
+                        if(cnt>snakeObj.snakeLength) {
+                            break;
+                        }
+
+                        vals[i] = snakeObj.id + "_" + LEFT;
+                        document.images['arena'+i].src = snakeObj.bodyImg;
+
+                        cnt++;
+                    }
+
+                    document.images['arena'+snakeObj.head].src = snakeObj.headImg;
+                    vals[snakeObj.tail] = snakeObj.id + "_" + LEFT;
+                }
+            }
+
+            window.onload = function() {
+                
+                var count = 0;
+                var temp = "";
+
+                resetScores();
+
+                temp = "<center><table cellpadding=0 cellspacing=0 border=0>";
+                for(var i=0 ; i<order_ver ; i++) {
+                    temp += "<tr>";
+
+                    for(var j=0 ; j<order_hor ; j++) {
+                        temp += "<td><img id='arena"+count+"' src=images/blank.JPG width="+cellSize+" height="+cellSize+"></td>";
+                        count++;
+                    }
+
+                    temp += "</tr>";
+                }
+
+                document.getElementById("dynTable").innerHTML = temp;
+
+                initializeArena();
+
+                snakeObj = [new Snake(0, first, RIGHT), new Snake(1, last-order_hor-1-1, LEFT)];
+
+                var noOfPlayers = snakeObj.length;
+                timer = new Array(noOfPlayers);
+                for(i=0 ; i<noOfPlayers ; i++){
+                    //window.setInterval("play(snakeObj[0])", delay);
+                    timer[i] = window.setInterval("play(snakeObj["+i+"])", delay);
+                }
+
+                newFood();
+                newFood();
+            }
+
+            function resetScores(){
+                document.getElementById("score0").innerHTML = 0;
+                document.getElementById("score1").innerHTML = 0;
+            }
+
+            function resetSnake(snakeObj, tailPos, direction){
+                snakeObj.count = 0; // used by the tail while taking appropriate turns
+                snakeObj.prevCount;
+                snakeObj.prevScore = this.score;
+                snakeObj.flg = 0; // to indicate the capture of food
+
+                snakeObj.direction = 0; // 1=right 2=down 3=left 4=up
+                snakeObj.prev_direction = 0; // used to avoid consecutive repetition of same key
+
+                snakeObj.snakeLength = 3; // initial
+                snakeObj.gameOver = 0;
+
+                snakeObj.tail = tailPos; // initial position of tail of the snake
+
+                if(direction == RIGHT){
+                    snakeObj.head = tailPos + snakeObj.snakeLength; // initial position of head of the snake
+                } else if(direction == LEFT){
+                    snakeObj.head = tailPos - snakeObj.snakeLength;
+                }
+
+                clearVals(snakeObj);
+
+                initialiseSnake(snakeObj);
+            }
+
+            function clearVals(snakeObj){
+                for(i=0 ; i<noOfCells ; i++){
+                    if(isSnake(snakeObj, vals[i])){
+                        vals[i] = "-1" + "_" + BLANK_VALUE;
+                        document.images['arena'+i].src = blankImg;
+                    }
+                }
+            }
+
+            function isSnake(snakeObj, val){
+                //alert(snakeObj.id);
+                return snakeObj.id == parseInt(val.split("_")[0]);
+            }
+
+            function Snake(id, tailPos, direction){
+                //var id = 0;
+                this.id = id;
+                this.count = 0; // used by the tail while taking appropriate turns
+                this.prevCount;
+                this.score = 0; // gives the score
+                this.prevScore = 0;
+                this.lives = 3;
+                //this.vals = new Array(); // indicates the cells which contain the part of snake
+                // (1-4):snake		0:blank		5:food		6:wall
+                this.flg = 0; // to indicate the capture of food
+
+                this.snakeLength = 3; // initial
+                this.tail = tailPos; // initial position of tail of the snake
+
+                if(direction == RIGHT){
+                    this.head = tailPos + this.snakeLength; // initial position of head of the snake
+                } else if(direction == LEFT){
+                    this.head = tailPos - this.snakeLength;
+                }
+                
+                this.direction = 0; // 1=right 2=down 3=left 4=up
+                this.prev_direction = 0; // used to avoid consecutive repetition of same key
+
+                this.gameOver = 0;
+
+                this.headImg = headImgArr[id];
+                this.bodyImg = bodyImgArr[id];
+
+                initialiseSnake(this);
+
+                return this;
+            }
+
+            function play1(){
+                play(snakeObj[0]);
+            }
+
+            function play2(){
+                play(snakeObj[1]);
+            }
+
+        </script>
+    </head>
+    <body>
+        <table align="center" width="800px" style="height:600px; vertical-align:middle" cellpadding="0px" cellspacing="0px">
+            <tr style="height:15%">
+                <td style="width:15%">
+
+                </td>
+                <td style="width:70%; background-image:url('images/header.jpg');border-style:solid; border-width:2px; border-color:black">
+                <!--<td style="width:70%; background-color:#e0e0e0">-->
+
+                </td>
+                <td style="width:15%">
+
+                </td>
+            </tr>
+            <tr style="height:75%">
+                <td style="border-style:solid; border-width:2px">
+                    <table width="100%" style="height:100%" border="1" cellpadding="0px" cellspacing="0px">
+                        <tr>
+                            <td height="20%">
+                                <table width="100%" style="height:100%" border="1">
+                                    <tr>
+                                        <td>
+                                            <img src="images/set1/player.png" width="90px" height="90px" alt="player1" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="text-align:center">
+                                            Player 1
+                                        </td>
+                                    </tr>
+                                </table>
+
+                            </td>
+                        </tr>
+                        <tr style="height:10%">
+                            <td>
+                                <table width="100%" style="height:100%" border="1">
+                                    <tr>
+                                        <td style="text-align:center; height:30%; font-family:cursive; color:#880000">
+                                            Score
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="text-align:center; font-family:cursive; color:#dd0000">
+                                            <a id="score0" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr style="height:10%; width:100%">
+                            <td>
+                                <table width="90px" style="height:100%" border="1">
+                                    <tr>
+                                        <td style="text-align:center; height:30%; font-family:cursive; color:#880000">
+                                            Lives
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td width="90px">
+                                            <table>
+                                                <tr>
+                                                    <td style="text-align:center; font-family:cursive; color:#dd0000">
+                                                        <img id="life_0_0" src="images/set1/life.png" width="30px" height="30px" alt="player1" />
+                                                    </td>
+                                                    <td style="text-align:center; font-family:cursive; color:#dd0000">
+                                                        <img id="life_0_1" src="images/set1/life.png" width="30px" height="30px" alt="player1" />
+                                                    </td>
+                                                    <td style="text-align:center; font-family:cursive; color:#dd0000">
+                                                        <img id="life_0_2" src="images/set1/life.png" width="30px" height="30px" alt="player1" />
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr style="height:20%">
+                            <td>
+                                <table width="100%" style="height:100%" border="1">
+                                    <tr>
+                                        <td style="text-align:center; height:30%; font-family:cursive; color:#880000">
+                                            Controls
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="text-align:center; font-family:cursive; color:#dd0000">
+											<font size="1">w, a, s, d <br/> &lt;space&gt; to pause</font>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr style="height:20%">
+                            <td>
+                                <table width="100%" style="height:100%" border="1">
+                                    <tr>
+                                        <td style="text-align:center; height:30%; font-family:cursive; color:#880000">
+                                            Result
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td id="result_0" style="text-align:center; font-family:cursive; color:#dd0000; width:80px; height:80px">
+                                            <!--<div id="result_0" />-->
+                                            <!--<img id="result_0" src="images/set1/q.png" width="80px" height="80px" alt="player1_result" />-->
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td style="border-style:solid; border-width:2px">
+                    <a id="dynTable"></a>
+                </td>
+                <td style="border-style:solid; border-width:2px">
+                    <table width="100%" style="height:100%" border="1" cellpadding="0px" cellspacing="0px">
+                        <tr>
+                            <td height="20%">
+                                <table width="100%" style="height:100%" border="1">
+                                    <tr>
+                                        <td>
+                                            <img src="images/set2/player.png" width="90px" height="90px" alt="player1" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="text-align:center">
+                                            Player 2
+                                        </td>
+                                    </tr>
+                                </table>
+
+                            </td>
+                        </tr>
+                        <tr style="height:10%">
+                            <td>
+                                <table width="100%" style="height:100%" border="1">
+                                    <tr>
+                                        <td style="text-align:center; height:30%; font-family:cursive; color:#000088">
+                                            Score
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="text-align:center; font-family:cursive; color:#0000dd">
+                                            <a id="score1" />
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr style="height:10%; width:100%">
+                            <td>
+                                <table width="90px" style="height:100%" border="1">
+                                    <tr>
+                                        <td style="text-align:center; height:30%; font-family:cursive; color:#000088">
+                                            Lives
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td width="90px">
+                                            <table>
+                                                <tr>
+                                                    <td style="text-align:center; font-family:cursive; color:#0000dd">
+                                                        <img id="life_1_0" src="images/set2/life.png" width="30px" height="30px" alt="player1" />
+                                                    </td>
+                                                    <td style="text-align:center; font-family:cursive; color:#0000dd">
+                                                        <img id="life_1_1" src="images/set2/life.png" width="30px" height="30px" alt="player1" />
+                                                    </td>
+                                                    <td style="text-align:center; font-family:cursive; color:#0000dd">
+                                                        <img id="life_1_2" src="images/set2/life.png" width="30px" height="30px" alt="player1" />
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr style="height:20%">
+                            <td>
+                                <table width="100%" style="height:100%" border="1">
+                                    <tr>
+                                        <td style="text-align:center; height:30%; font-family:cursive; color:#000088">
+                                            Controls
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="text-align:center; font-family:cursive; color:#0000dd">
+                                            <font size="1">&uarr;, &larr;, &darr;, &rarr; <br/> &lt;space&gt; to pause</font>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr style="height:20%">
+                            <td>
+                                <table width="100%" style="height:100%" border="1">
+                                    <tr>
+                                        <td style="text-align:center; height:30%; font-family:cursive; color:#000088">
+                                            Result
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="text-align:center; font-family:cursive; color:#0000dd; width:80px; height:80px">
+                                            <a id="result_1" />
+                                            <!--<img id="result_1" src="images/set2/q.png" width="80px" height="80px" alt="player1_result" />-->
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr style="height:10%">
+                <td>
+
+                </td>
+                <td style="border-style:solid; border-width:2px; text-align:right">
+                    Developed By :- Sujal Wattamwar
+                </td>
+                <td>
+
+                </td>
+            </tr>
+        </table>
+
+        <!--<a id="dynTable"></a>-->
+
+        <center>            
+            <input type="button" value="New game" onClick="window.location='play.html'"/>
+        </center>
+    </body>
+</html>
